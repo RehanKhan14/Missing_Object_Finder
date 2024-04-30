@@ -61,9 +61,11 @@ def detect_objects(image_path, desired_classes=None, confidence_threshold=0.2, n
 
     st.image(image, channels="BGR", caption="Detected Objects")
 
+    listOfObjects=[]
     # Print the detected objects
     for idx, (class_id, confidence, bbox) in enumerate(detections, start=1):
         class_label = class_labels[class_id]
+        listOfObjects.append(class_label)
         st.write(f"Object {idx}: {class_label} (confidence: {confidence:.2f})")
 
     return detections
@@ -91,6 +93,7 @@ def main():
             desired_classes = class_labels
         st.write("Detecting objects...")
         detections = detect_objects(image_path, desired_classes, confidence_threshold, nms_threshold)
+
 
 if __name__ == "__main__":
     main()

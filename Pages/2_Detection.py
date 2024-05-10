@@ -1,6 +1,8 @@
 import streamlit as st
 import cv2
 import numpy as np
+import requests
+import json
 
 class_labels = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat", "traffic light",
                     "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
@@ -60,15 +62,31 @@ def detect_objects(image_path, desired_classes=None, confidence_threshold=0.2, n
                 cv2.putText(image, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
     st.image(image, channels="BGR", caption="Detected Objects")
-
-    listOfObjects=[]
+    object_list = []
     # Print the detected objects
     for idx, (class_id, confidence, bbox) in enumerate(detections, start=1):
         class_label = class_labels[class_id]
-        listOfObjects.append(class_label)
+        object_list.append(class_label)
         st.write(f"Object {idx}: {class_label} (confidence: {confidence:.2f})")
 
-    return detections
+    return detections,object_list
+
+def updateDB(room,object_list):
+    # print(room)
+    # print(object_list)
+    if('token' not in st.session_state):
+        st.switch_page("Login.py")
+    token=st.session_state.token
+    headers={'authorization': token,'Content-Type': 'application/json'}
+    url='http://localhost:5000/item/'
+    body={'room':room, 'itemList':object_list}
+    body_json= json.dumps(body)
+    # print(body_json)
+    response = requests.post(url=url,headers=headers,data=body_json)
+    # print('Status Code:', response.status_code)
+    # print('Response Body:', response.json())
+    # return response 
+    return response.status_code
 
 def main():
     st.title("Object Detection App")
@@ -92,7 +110,21 @@ def main():
         else:
             desired_classes = class_labels
         st.write("Detecting objects...")
-        detections = detect_objects(image_path, desired_classes, confidence_threshold, nms_threshold)
+        detections,object_list = detect_objects(image_path, desired_classes, confidence_threshold, nms_threshold)
+        st.write("Update Your Items")
+        room = st.text_input("Room Name")
+        if st.button("Update"):
+            if room and len(object_list)>0:
+                status = updateDB(room,object_list)
+                if status == 200:
+                    st.success('Items updated!')
+                else:
+                    st.error("Something went wrong!")
+            elif len(object_list)<1:
+                st.error('No objects to update!')
+            else:
+                st.error("You must enter a room!")
+                
 
 
 if __name__ == "__main__":
